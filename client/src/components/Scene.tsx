@@ -73,7 +73,7 @@ export default function Scene({ model, settings }: SceneProps) {
     for (let i = 0; i < settings.steamDensity; i++) {
       const i3 = i * 3;
       steamParticles[i3] = (Math.random() - 0.5) * 1.0;
-      steamParticles[i3 + 1] = Math.random() * 0.5;
+      steamParticles[i3 + 1] = Math.random() * 0.5 + settings.steamPositionY;
       steamParticles[i3 + 2] = (Math.random() - 0.5) * 1.0;
       
       steamVelocities[i3] = (Math.random() - 0.5) * 0.005;
@@ -183,6 +183,14 @@ export default function Scene({ model, settings }: SceneProps) {
     const steamMaterial = steamParticlesRef.current.material as THREE.ShaderMaterial;
     steamMaterial.uniforms.intensity.value = settings.steamIntensity;
     steamMaterial.uniforms.speed.value = settings.steamSpeed;
+    
+    // Update steam particles position
+    const positions = steamParticlesRef.current.geometry.attributes.position.array;
+    for (let i = 0; i < settings.steamDensity; i++) {
+      const i3 = i * 3;
+      positions[i3 + 1] = Math.random() * 0.5 + settings.steamPositionY;
+    }
+    steamParticlesRef.current.geometry.attributes.position.needsUpdate = true;
   }, [settings]);
 
   return <div ref={containerRef} className="w-full h-full" />;

@@ -8,6 +8,7 @@ interface ControlsProps {
     steamIntensity: number;
     steamSpeed: number;
     steamDensity: number;
+    steamPositionY: number;
     autoRotate: boolean;
   };
   onSettingsChange: (settings: any) => void;
@@ -44,6 +45,17 @@ export default function Controls({ settings, onSettingsChange }: ControlsProps) 
             step={0.1}
             value={[settings.steamSpeed]}
             onValueChange={([value]) => updateSetting('steamSpeed', value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Steam Height Position</Label>
+          <Slider
+            min={0}
+            max={2}
+            step={0.1}
+            value={[settings.steamPositionY]}
+            onValueChange={([value]) => updateSetting('steamPositionY', value)}
           />
         </div>
 

@@ -11,6 +11,7 @@ export default function Home() {
     steamIntensity: 0.5,
     steamSpeed: 1.0,
     steamDensity: 100,
+    steamPositionY: 0.5,
     autoRotate: true
   });
 
