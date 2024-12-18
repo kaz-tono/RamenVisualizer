@@ -18,6 +18,8 @@ export default function FileUpload({ onDataLoaded }: FileUploadProps) {
       onDataLoaded(data);
     } catch (error) {
       console.error('Error loading point cloud:', error);
+      const errorMessage = error instanceof Error ? error.message : '点群ファイルの読み込み中にエラーが発生しました';
+      alert(errorMessage);
     }
   }, [onDataLoaded]);
 
