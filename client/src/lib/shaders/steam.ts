@@ -5,18 +5,24 @@ export const steamVertexShader = `
   
   void main() {
     vec3 pos = position;
-    pos.x += velocity.x * time * speed;
-    pos.y += velocity.y * time * speed;
-    pos.z += velocity.z * time * speed;
     
-    // Reset particles that move too high
-    if (pos.y > 3.0) {
-      pos.y = 0.0;
+    // Add swirling motion
+    float swirl = sin(time * 2.0 + pos.y) * 0.1;
+    pos.x += velocity.x * time * speed + swirl;
+    pos.y += velocity.y * time * speed;
+    pos.z += velocity.z * time * speed + cos(time * 2.0 + pos.y) * 0.1;
+    
+    // Reset particles that move too high or too far
+    if (pos.y > 3.0 || length(pos - position) > 2.0) {
+      pos = position;
     }
     
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
     gl_Position = projectionMatrix * mvPosition;
-    gl_PointSize = 2.0;
+    
+    // Size variation based on height
+    float sizeVar = 1.0 + sin(time * 3.0 + pos.y * 2.0) * 0.3;
+    gl_PointSize = 2.0 * sizeVar;
   }
 `;
 

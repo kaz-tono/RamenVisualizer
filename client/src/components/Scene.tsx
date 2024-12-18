@@ -129,7 +129,7 @@ export default function Scene({ model, settings }: SceneProps) {
       }
 
       renderer.dispose();
-      scene.clear();
+      // scene.clear(); //Removed to prevent clearing the scene on unmount
 
       if (containerRef.current) {
         containerRef.current.removeChild(renderer.domElement);
@@ -159,22 +159,35 @@ export default function Scene({ model, settings }: SceneProps) {
   useEffect(() => {
     if (!model || !sceneRef.current) return;
 
-    if (modelRef.current) {
-      sceneRef.current.remove(modelRef.current);
-    }
+    // Keep track of the current model to remove it later
+    const currentModel = modelRef.current;
 
-    // Position and scale the model
-    model.scale.set(0.5, 0.5, 0.5);
-    model.position.set(0, 0, 0);
-    model.traverse((child) => {
+    // Clone the model to avoid reference issues
+    const newModel = model.clone();
+    newModel.scale.set(0.5, 0.5, 0.5);
+    newModel.position.set(0, 0, 0);
+    
+    // Apply shadows to all meshes in the model
+    newModel.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.castShadow = true;
         child.receiveShadow = true;
       }
     });
+    
+    // Add new model first, then remove old one to avoid flickering
+    sceneRef.current.add(newModel);
+    modelRef.current = newModel;
 
-    sceneRef.current.add(model);
-    modelRef.current = model;
+    if (currentModel) {
+      sceneRef.current.remove(currentModel);
+    }
+
+    return () => {
+      if (newModel && sceneRef.current) {
+        sceneRef.current.remove(newModel);
+      }
+    };
   }, [model]);
 
   // Update settings and handle right click
@@ -190,7 +203,7 @@ export default function Scene({ model, settings }: SceneProps) {
     for (let i = 0; i < settings.steamDensity; i++) {
       const i3 = i * 3;
       positions[i3] = (Math.random() - 0.5) * 1.0 + steamPosition.x;
-      positions[i3 + 1] = Math.random() * 0.5 + steamPosition.y;
+      positions[i3 + 1] = Math.random() * 0.5 + steamPosition.y + 0.1 * Math.sin(i/10); // Added slight vertical movement
       positions[i3 + 2] = (Math.random() - 0.5) * 1.0 + steamPosition.z;
     }
     steamParticlesRef.current.geometry.attributes.position.needsUpdate = true;
