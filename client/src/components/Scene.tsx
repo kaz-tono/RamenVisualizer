@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { steamVertexShader, steamFragmentShader } from '@/lib/shaders/steam';
@@ -22,6 +22,7 @@ export default function Scene({ model, settings }: SceneProps) {
   const steamParticlesRef = useRef<THREE.Points>();
   const modelRef = useRef<THREE.Group>();
   const frameIdRef = useRef<number>();
+  const [steamPosition, setSteamPosition] = useState<THREE.Vector3>(new THREE.Vector3(0, 0.5, 0));
 
   // Initialize Three.js scene
   useEffect(() => {
@@ -72,10 +73,10 @@ export default function Scene({ model, settings }: SceneProps) {
 
     for (let i = 0; i < settings.steamDensity; i++) {
       const i3 = i * 3;
-      steamParticles[i3] = (Math.random() - 0.5) * 1.0;
-      steamParticles[i3 + 1] = Math.random() * 0.5 + settings.steamPositionY;
-      steamParticles[i3 + 2] = (Math.random() - 0.5) * 1.0;
-      
+      steamParticles[i3] = (Math.random() - 0.5) * 1.0 + steamPosition.x;
+      steamParticles[i3 + 1] = Math.random() * 0.5 + steamPosition.y;
+      steamParticles[i3 + 2] = (Math.random() - 0.5) * 1.0 + steamPosition.z;
+
       steamVelocities[i3] = (Math.random() - 0.5) * 0.005;
       steamVelocities[i3 + 1] = Math.random() * 0.01;
       steamVelocities[i3 + 2] = (Math.random() - 0.5) * 0.005;
@@ -126,15 +127,15 @@ export default function Scene({ model, settings }: SceneProps) {
       if (frameIdRef.current) {
         cancelAnimationFrame(frameIdRef.current);
       }
-      
+
       renderer.dispose();
       scene.clear();
-      
+
       if (containerRef.current) {
         containerRef.current.removeChild(renderer.domElement);
       }
     };
-  }, []);
+  }, [settings.steamDensity, settings.steamIntensity, settings.steamSpeed, steamPosition]);
 
   // Handle window resize
   useEffect(() => {
@@ -171,27 +172,55 @@ export default function Scene({ model, settings }: SceneProps) {
         child.receiveShadow = true;
       }
     });
-    
+
     sceneRef.current.add(model);
     modelRef.current = model;
   }, [model]);
 
-  // Update settings
+  // Update settings and handle right click
   useEffect(() => {
-    if (!steamParticlesRef.current) return;
+    if (!steamParticlesRef.current || !cameraRef.current || !sceneRef.current) return;
 
     const steamMaterial = steamParticlesRef.current.material as THREE.ShaderMaterial;
     steamMaterial.uniforms.intensity.value = settings.steamIntensity;
     steamMaterial.uniforms.speed.value = settings.steamSpeed;
-    
+
     // Update steam particles position
-    const positions = steamParticlesRef.current.geometry.attributes.position.array;
+    const positions = steamParticlesRef.current.geometry.attributes.position.array as Float32Array;
     for (let i = 0; i < settings.steamDensity; i++) {
       const i3 = i * 3;
-      positions[i3 + 1] = Math.random() * 0.5 + settings.steamPositionY;
+      positions[i3] = (Math.random() - 0.5) * 1.0 + steamPosition.x;
+      positions[i3 + 1] = Math.random() * 0.5 + steamPosition.y;
+      positions[i3 + 2] = (Math.random() - 0.5) * 1.0 + steamPosition.z;
     }
     steamParticlesRef.current.geometry.attributes.position.needsUpdate = true;
-  }, [settings]);
+  }, [settings, steamPosition]);
 
-  return <div ref={containerRef} className="w-full h-full" />;
+  const handleContextMenu = (event: React.MouseEvent) => {
+    event.preventDefault();
+    if (!sceneRef.current || !cameraRef.current || !containerRef.current) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(x, y), cameraRef.current);
+
+    // Create a plane that represents the ground
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const intersectPoint = new THREE.Vector3();
+    
+    if (raycaster.ray.intersectPlane(plane, intersectPoint)) {
+      setSteamPosition(intersectPoint);
+    }
+  };
+
+  return (
+    <div 
+      ref={containerRef} 
+      className="w-full h-full"
+      onContextMenu={handleContextMenu}
+    />
+  );
 }
