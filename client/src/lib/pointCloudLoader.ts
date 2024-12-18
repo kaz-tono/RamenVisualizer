@@ -15,7 +15,9 @@ export async function parsePointCloudFile(file: File): Promise<Float32Array> {
 
 async function parsePLY(file: File): Promise<Float32Array> {
   try {
-    const text = await file.text();
+    const buffer = await file.arrayBuffer();
+    const decoder = new TextDecoder('ascii');
+    const text = decoder.decode(buffer);
     const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     
     if (lines.length === 0) {
