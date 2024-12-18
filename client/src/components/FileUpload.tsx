@@ -1,11 +1,12 @@
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent } from "@/components/ui/card";
-import { parsePointCloudFile } from '@/lib/pointCloudLoader';
+import { loadGLBModel } from '@/lib/glbLoader';
 import { Upload } from 'lucide-react';
+import * as THREE from 'three';
 
 interface FileUploadProps {
-  onDataLoaded: (data: Float32Array) => void;
+  onDataLoaded: (model: THREE.Group) => void;
 }
 
 export default function FileUpload({ onDataLoaded }: FileUploadProps) {
@@ -14,8 +15,8 @@ export default function FileUpload({ onDataLoaded }: FileUploadProps) {
     if (!file) return;
 
     try {
-      const data = await parsePointCloudFile(file);
-      onDataLoaded(data);
+      const model = await loadGLBModel(file);
+      onDataLoaded(model);
     } catch (error) {
       console.error('Error loading point cloud:', error);
       const errorMessage = error instanceof Error ? error.message : '点群ファイルの読み込み中にエラーが発生しました';
@@ -26,9 +27,7 @@ export default function FileUpload({ onDataLoaded }: FileUploadProps) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'application/octet-stream': ['.ply'],
-      'text/plain': ['.xyz'],
-      'application/json': ['.json']
+      'model/gltf-binary': ['.glb', '.gltf']
     },
     multiple: false
   });
@@ -50,7 +49,7 @@ export default function FileUpload({ onDataLoaded }: FileUploadProps) {
           <p className="text-sm text-center text-muted-foreground">
             {isDragActive
               ? "Drop the file here"
-              : "Drag & drop a point cloud file (PLY, XYZ, JSON)"}
+              : "GLBまたはGLTFファイルをドラッグ＆ドロップしてください"}
           </p>
         </div>
       </CardContent>

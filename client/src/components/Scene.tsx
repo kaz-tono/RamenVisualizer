@@ -1,13 +1,12 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { pointCloudVertexShader, pointCloudFragmentShader } from '@/lib/shaders/pointCloud';
 import { steamVertexShader, steamFragmentShader } from '@/lib/shaders/steam';
 
 interface SceneProps {
-  pointCloudData: Float32Array | null;
+  model: THREE.Group | null;
   settings: {
-    pointSize: number;
     steamIntensity: number;
     steamSpeed: number;
     steamDensity: number;
@@ -15,14 +14,15 @@ interface SceneProps {
   };
 }
 
-export default function Scene({ pointCloudData, settings }: SceneProps) {
+export default function Scene({ model, settings }: SceneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<THREE.Scene>();
-  const cameraRef = useRef<THREE.PerspectiveCamera>();
+  const sceneRef = useRef<THREE.Scene>(new THREE.Scene());
+  const cameraRef = useRef<THREE.PerspectiveCamera>(new THREE.PerspectiveCamera());
   const rendererRef = useRef<THREE.WebGLRenderer>();
+  sceneRef.current = sceneRef.current || new THREE.Scene();
   const controlsRef = useRef<OrbitControls>();
   const steamParticlesRef = useRef<THREE.Points>();
-  const pointCloudRef = useRef<THREE.Points>();
+  const modelRef = useRef<THREE.Group>();
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -48,13 +48,15 @@ export default function Scene({ pointCloudData, settings }: SceneProps) {
 
     for (let i = 0; i < settings.steamDensity; i++) {
       const i3 = i * 3;
-      steamParticles[i3] = (Math.random() - 0.5) * 2;
-      steamParticles[i3 + 1] = Math.random() * 2;
-      steamParticles[i3 + 2] = (Math.random() - 0.5) * 2;
+      // Adjust steam particle spawn area to match model size
+      steamParticles[i3] = (Math.random() - 0.5) * 1.0;  // Smaller spread for x
+      steamParticles[i3 + 1] = Math.random() * 0.5;      // Start lower
+      steamParticles[i3 + 2] = (Math.random() - 0.5) * 1.0;  // Smaller spread for z
       
-      steamVelocities[i3] = (Math.random() - 0.5) * 0.01;
-      steamVelocities[i3 + 1] = Math.random() * 0.02;
-      steamVelocities[i3 + 2] = (Math.random() - 0.5) * 0.01;
+      // Adjust velocity for more realistic steam movement
+      steamVelocities[i3] = (Math.random() - 0.5) * 0.005;
+      steamVelocities[i3 + 1] = Math.random() * 0.01;
+      steamVelocities[i3 + 2] = (Math.random() - 0.5) * 0.005;
     }
 
     steamGeometry.setAttribute('position', new THREE.BufferAttribute(steamParticles, 3));
@@ -88,8 +90,8 @@ export default function Scene({ pointCloudData, settings }: SceneProps) {
         material.uniforms.time.value += 0.01;
       }
 
-      if (pointCloudRef.current && settings.autoRotate) {
-        pointCloudRef.current.rotation.y += 0.001;
+      if (modelRef.current && settings.autoRotate) {
+        modelRef.current.rotation.y += 0.001;
       }
 
       renderer.render(scene, camera);
@@ -106,38 +108,35 @@ export default function Scene({ pointCloudData, settings }: SceneProps) {
 
   // Update point cloud when data changes
   useEffect(() => {
-    if (!pointCloudData || !sceneRef.current) return;
+    if (!model || !sceneRef.current) return;
 
-    if (pointCloudRef.current) {
-      sceneRef.current.remove(pointCloudRef.current);
+    if (modelRef.current) {
+      sceneRef.current.remove(modelRef.current);
     }
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(pointCloudData, 3));
+    // Add ambient and directional light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(5, 5, 5);
+    
+    sceneRef.current.add(ambientLight);
+    sceneRef.current.add(directionalLight);
 
-    const material = new THREE.ShaderMaterial({
-      vertexShader: pointCloudVertexShader,
-      fragmentShader: pointCloudFragmentShader,
-      uniforms: {
-        pointSize: { value: settings.pointSize }
-      }
-    });
-
-    const points = new THREE.Points(geometry, material);
-    sceneRef.current.add(points);
-    pointCloudRef.current = points;
-  }, [pointCloudData]);
+    // Scale and position the model
+    model.scale.set(0.5, 0.5, 0.5);
+    model.position.set(0, -1, 0);
+    
+    sceneRef.current.add(model);
+    modelRef.current = model;
+  }, [model]);
 
   // Update settings
   useEffect(() => {
-    if (!steamParticlesRef.current || !pointCloudRef.current) return;
+    if (!steamParticlesRef.current) return;
 
     const steamMaterial = steamParticlesRef.current.material as THREE.ShaderMaterial;
     steamMaterial.uniforms.intensity.value = settings.steamIntensity;
     steamMaterial.uniforms.speed.value = settings.steamSpeed;
-
-    const pointMaterial = pointCloudRef.current.material as THREE.ShaderMaterial;
-    pointMaterial.uniforms.pointSize.value = settings.pointSize;
   }, [settings]);
 
   return <div ref={containerRef} className="w-full h-full" />;

@@ -3,11 +3,11 @@ import Scene from "@/components/Scene";
 import Controls from "@/components/Controls";
 import FileUpload from "@/components/FileUpload";
 import { Card } from "@/components/ui/card";
+import * as THREE from 'three';
 
 export default function Home() {
-  const [pointCloudData, setPointCloudData] = useState<Float32Array | null>(null);
+  const [model, setModel] = useState<THREE.Group | null>(null);
   const [settings, setSettings] = useState({
-    pointSize: 0.02,
     steamIntensity: 0.5,
     steamSpeed: 1.0,
     steamDensity: 100,
@@ -26,14 +26,14 @@ export default function Home() {
         <div className="lg:w-3/4 relative">
           <Card className="w-full h-[600px] lg:h-full">
             <Scene
-              pointCloudData={pointCloudData}
+              model={model}
               settings={settings}
             />
           </Card>
         </div>
 
         <div className="lg:w-1/4 space-y-4">
-          <FileUpload onDataLoaded={setPointCloudData} />
+          <FileUpload onDataLoaded={setModel} />
           <Controls settings={settings} onSettingsChange={setSettings} />
         </div>
       </main>

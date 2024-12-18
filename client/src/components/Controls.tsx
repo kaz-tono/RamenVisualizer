@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ControlsProps {
   settings: {
-    pointSize: number;
     steamIntensity: number;
     steamSpeed: number;
     steamDensity: number;
@@ -25,16 +24,6 @@ export default function Controls({ settings, onSettingsChange }: ControlsProps) 
         <CardTitle>Display Settings</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label>Point Size</Label>
-          <Slider
-            min={0.01}
-            max={0.1}
-            step={0.01}
-            value={[settings.pointSize]}
-            onValueChange={([value]) => updateSetting('pointSize', value)}
-          />
-        </div>
 
         <div className="space-y-2">
           <Label>Steam Intensity</Label>
